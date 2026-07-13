@@ -8,6 +8,7 @@ DEFAULT = {
     "poll_interval": 2000,
     "play_sound": True,
     "sound_file": "",
+    "target_window": "",
     "hotkeys": {
         "COMPRA": "",
         "VENDA": "",

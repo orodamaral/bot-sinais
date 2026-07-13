@@ -22,13 +22,39 @@ def _play_sound():
         pass
 
 
-def _press_hotkey(hotkey: str):
+def _focus_window(title_match: str):
+    if not title_match:
+        return True
+    try:
+        import pygetwindow as gw
+        wins = gw.getWindowsWithTitle(title_match)
+        if not wins:
+            logger.warning("Janela '%s' nao encontrada", title_match)
+            return False
+        win = wins[0]
+        if win.isMinimized:
+            win.restore()
+        win.activate()
+        import time
+        time.sleep(0.3)
+        return True
+    except ImportError:
+        logger.debug("pygetwindow nao instalado")
+        return False
+    except Exception as e:
+        logger.debug("Erro ao focar janela: %s", e)
+        return False
+
+
+def _press_hotkey(hotkey: str, target_window: str = ""):
     if not hotkey:
         return
     try:
         import pyautogui
+        pyautogui.PAUSE = 0.05
+        _focus_window(target_window)
         keys = hotkey.split("+")
-        pyautogui.hotkey(*keys)
+        pyautogui.hotkey(*keys, interval=0.08)
         logger.info("Hotkey executado: %s", hotkey)
     except ImportError:
         logger.warning("pyautogui nao instalado. pip install pyautogui")
@@ -49,7 +75,8 @@ def main():
         action = record.get("action", "")
         hotkey = app.get_hotkey(action)
         if hotkey:
-            threading.Thread(target=_press_hotkey, args=(hotkey,), daemon=True).start()
+            target = app.get_window_title()
+            threading.Thread(target=_press_hotkey, args=(hotkey, target), daemon=True).start()
 
     poller = Poller(server_url, on_signal)
 

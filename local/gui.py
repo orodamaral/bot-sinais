@@ -269,9 +269,30 @@ class App:
         scroll = ctk.CTkScrollableFrame(parent, corner_radius=10)
         scroll.pack(fill="both", expand=True, padx=6, pady=(10, 0))
 
+        ctk.CTkLabel(scroll, text="Janela Alvo",
+                     font=("Segoe UI", 16, "bold"),
+                     text_color="#c9d1d9").pack(pady=(10, 2))
+        ctk.CTkLabel(scroll, text="Nome (ou parte) da janela que deve receber os atalhos  |  Ex: BlackArrow, Nelógica, MetaTrader",
+                     font=("Segoe UI", 10), text_color="#8b949e", wraplength=500).pack(pady=(0, 6))
+
+        win_row = ctk.CTkFrame(scroll, fg_color="transparent")
+        win_row.pack(pady=4, padx=20, fill="x")
+        ctk.CTkLabel(win_row, text="Janela:", font=("Segoe UI", 13),
+                     text_color="#c9d1d9", width=160, anchor="w").pack(side="left")
+        self._window_entry = ctk.CTkEntry(win_row, placeholder_text="ex: BlackArrow",
+                                          width=260, corner_radius=6)
+        self._window_entry.insert(0, self._config.get("target_window", ""))
+        self._window_entry.pack(side="left", padx=(10, 0))
+
+        ctk.CTkLabel(scroll, text="", height=8).pack()
+
+        sep = ctk.CTkFrame(scroll, height=1, corner_radius=0)
+        sep.configure(fg_color="#30363d")
+        sep.pack(fill="x", padx=20, pady=10)
+
         ctk.CTkLabel(scroll, text="Atalhos de Teclado (Hotkeys)",
                      font=("Segoe UI", 16, "bold"),
-                     text_color="#c9d1d9").pack(pady=(10, 4))
+                     text_color="#c9d1d9").pack(pady=(2, 4))
         ctk.CTkLabel(scroll, text="Clique no campo e pressione o atalho desejado  |  Deixe vazio para desabilitar",
                      font=("Segoe UI", 10), text_color="#8b949e").pack(pady=(0, 14))
 
@@ -308,8 +329,12 @@ class App:
             val = entry.get().strip().lower()
             hotkeys[act] = val
         self._config["hotkeys"] = hotkeys
+        self._config["target_window"] = self._window_entry.get().strip()
         save_config(self._config)
         self._status_label.configure(text="Configurações salvas")
+
+    def get_window_title(self) -> str:
+        return self._config.get("target_window", "")
 
     def get_hotkey(self, action: str) -> str:
         return self._config.get("hotkeys", {}).get(action, "")

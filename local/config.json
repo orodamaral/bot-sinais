@@ -1,0 +1,13 @@
+{
+  "server_url": "https://rodamaral.pythonanywhere.com",
+  "poll_interval": 2000,
+  "play_sound": true,
+  "sound_file": "",
+  "hotkeys": {
+    "COMPRA": "prior",
+    "VENDA": "next",
+    "TAKE": "f3",
+    "STOP LOSS": "f3",
+    "VIRADA DE MÃO": "f4"
+  }
+}
