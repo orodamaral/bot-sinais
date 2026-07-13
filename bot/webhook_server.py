@@ -2,6 +2,7 @@ import json
 import logging
 import sys
 from pathlib import Path
+from datetime import datetime, timezone, timedelta
 
 from flask import Flask, request, jsonify
 
@@ -13,6 +14,34 @@ logger = logging.getLogger("webhook_server")
 app = Flask(__name__)
 executor = MT4Executor()
 executor.initialize()
+
+DATA_DIR = Path(__file__).parent.parent / "data"
+LAST_SIGNAL_FILE = DATA_DIR / "last_signal.json"
+HISTORY_FILE = DATA_DIR / "signal_history.json"
+MAX_HISTORY = 1000
+
+
+def _save_signal(data: dict):
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    LAST_SIGNAL_FILE.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    history = []
+    if HISTORY_FILE.exists():
+        try:
+            history = json.loads(HISTORY_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            history = []
+    history.append(data)
+    if len(history) > MAX_HISTORY:
+        history = history[-MAX_HISTORY:]
+    HISTORY_FILE.write_text(json.dumps(history, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _fmt_time_br(time_ms):
+    try:
+        t = datetime.fromtimestamp(time_ms / 1000, tz=timezone(timedelta(hours=-3)))
+        return t.strftime("%d/%m/%Y %H:%M:%S")
+    except Exception:
+        return str(time_ms)
 
 
 @app.route("/webhook", methods=["POST"])
@@ -44,6 +73,16 @@ def webhook():
     if signal is None:
         return jsonify({"status": "ignored", "signal": action})
 
+    record = {
+        "ticker": ticker,
+        "action": action,
+        "price": price,
+        "time": time_ms,
+        "time_str": _fmt_time_br(time_ms),
+    }
+
+    _save_signal(record)
+
     if signal != 0:
         cfg = load_config()
         trade_cfg = cfg.get("trade", {})
@@ -57,6 +96,28 @@ def webhook():
     run_actions(signal, extra)
 
     return jsonify({"status": "ok", "signal": action})
+
+
+@app.route("/last_signal", methods=["GET"])
+def last_signal():
+    if LAST_SIGNAL_FILE.exists():
+        try:
+            return jsonify(json.loads(LAST_SIGNAL_FILE.read_text(encoding="utf-8")))
+        except Exception:
+            pass
+    return jsonify({"status": "no_signal"})
+
+
+@app.route("/history", methods=["GET"])
+def history():
+    limit = request.args.get("limit", 100, type=int)
+    if HISTORY_FILE.exists():
+        try:
+            data = json.loads(HISTORY_FILE.read_text(encoding="utf-8"))
+            return jsonify(data[-limit:])
+        except Exception:
+            pass
+    return jsonify([])
 
 
 @app.route("/health", methods=["GET"])
