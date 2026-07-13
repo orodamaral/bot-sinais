@@ -2,6 +2,7 @@ import customtkinter as ctk
 from tkinter import filedialog, messagebox, ttk
 
 from .storage import load_history, save_history, export_xlsx
+from .config import load as load_config, save as save_config
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("green")
@@ -33,11 +34,13 @@ class App:
     def __init__(self):
         self.root = ctk.CTk()
         self.root.title("Gold Macro Compass — Monitor")
-        self.root.geometry("820x580")
-        self.root.minsize(720, 460)
+        self.root.geometry("820x620")
+        self.root.minsize(720, 500)
 
         self._sound_enabled = ctk.BooleanVar(value=True)
         self._history = load_history()
+        self._config = load_config()
+        self._hotkey_entries = {}
 
         self._build_ui()
         if self._history:
@@ -49,9 +52,11 @@ class App:
 
         tab_sinal = tabview.add("  Último Sinal  ")
         tab_historico = tabview.add("  Histórico  ")
+        tab_config = tabview.add("  Configurações  ")
 
         self._build_sinal_tab(tab_sinal)
         self._build_historico_tab(tab_historico)
+        self._build_settings_tab(tab_config)
         self._build_statusbar()
 
     def _build_sinal_tab(self, parent):
@@ -211,6 +216,55 @@ class App:
     @property
     def sound_enabled(self):
         return self._sound_enabled.get()
+
+    def _build_settings_tab(self, parent):
+        scroll = ctk.CTkScrollableFrame(parent, corner_radius=10)
+        scroll.pack(fill="both", expand=True, padx=6, pady=(10, 0))
+
+        ctk.CTkLabel(scroll, text="Atalhos de Teclado (Hotkeys)",
+                     font=("Segoe UI", 16, "bold"),
+                     text_color="#c9d1d9").pack(pady=(10, 4))
+        ctk.CTkLabel(scroll, text="Formato: ctrl+shift+alt+c  |  Deixe vazio para desabilitar",
+                     font=("Segoe UI", 10), text_color="#8b949e").pack(pady=(0, 14))
+
+        actions = ["COMPRA", "VENDA", "TAKE", "STOP LOSS", "VIRADA DE MÃO"]
+        hotkeys_cfg = self._config.get("hotkeys", {})
+
+        for act in actions:
+            row = ctk.CTkFrame(scroll, fg_color="transparent")
+            row.pack(pady=5, padx=20, fill="x")
+
+            emoji = EMOJI_MAP.get(act, "")
+            cor = COR_MAP.get(act, "#c9d1d9")
+            lbl = ctk.CTkLabel(row, text=f"{emoji}  {act}", font=("Segoe UI", 13, "bold"),
+                               text_color=cor, width=160, anchor="w")
+            lbl.pack(side="left")
+
+            entry = ctk.CTkEntry(row, placeholder_text="ex: ctrl+shift+alt+c",
+                                 width=260, corner_radius=6)
+            entry.insert(0, hotkeys_cfg.get(act, ""))
+            entry.pack(side="left", padx=(10, 0))
+            self._hotkey_entries[act] = entry
+
+        ctk.CTkLabel(scroll, text="", height=10).pack()
+
+        btn_frame = ctk.CTkFrame(scroll, fg_color="transparent")
+        btn_frame.pack(pady=(8, 16))
+        ctk.CTkButton(btn_frame, text="Salvar Configurações",
+                       command=self._save_hotkeys, width=180,
+                       corner_radius=8).pack()
+
+    def _save_hotkeys(self):
+        hotkeys = {}
+        for act, entry in self._hotkey_entries.items():
+            val = entry.get().strip().lower()
+            hotkeys[act] = val
+        self._config["hotkeys"] = hotkeys
+        save_config(self._config)
+        self._status_label.configure(text="Configurações salvas")
+
+    def get_hotkey(self, action: str) -> str:
+        return self._config.get("hotkeys", {}).get(action, "")
 
     def run(self):
         self.root.mainloop()

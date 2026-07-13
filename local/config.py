@@ -8,6 +8,13 @@ DEFAULT = {
     "poll_interval": 2000,
     "play_sound": True,
     "sound_file": "",
+    "hotkeys": {
+        "COMPRA": "",
+        "VENDA": "",
+        "TAKE": "",
+        "STOP LOSS": "",
+        "VIRADA DE MÃO": "",
+    },
 }
 
 

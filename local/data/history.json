@@ -12,5 +12,19 @@
     "ticker": "XAUUSD",
     "time": 1783973000000,
     "time_str": "13/07/2026 17:03:20"
+  },
+  {
+    "action": "VIRADA DE MÃO",
+    "price": 4010.75,
+    "ticker": "XAUUSD",
+    "time": 1783973000000,
+    "time_str": "13/07/2026 17:03:20"
+  },
+  {
+    "action": "COMPRA",
+    "price": 4050.2,
+    "ticker": "XAUUSD",
+    "time": 1783974000000,
+    "time_str": "13/07/2026 17:20:00"
   }
 ]
