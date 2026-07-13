@@ -1,0 +1,13 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.egg-info/
+dist/
+build/
+data/*.log
+data/signal.json
+data/trade_result.json
+data/orders/
+config/settings.json

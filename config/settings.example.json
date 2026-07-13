@@ -1,0 +1,37 @@
+{
+  "macro": {
+    "regression_length": 20,
+    "macro_timeframe_mins": 60,
+    "us10y_symbol": "US10Y",
+    "dxy_symbol": "DXY",
+    "eurusd_symbol": "EURUSD",
+    "usdjpy_symbol": "USDJPY",
+    "wti_symbol": "USOIL",
+    "xauusd_symbol": "XAUUSD"
+  },
+  "technical": {
+    "rsi_period": 7,
+    "rsi_overbought": 80,
+    "rsi_oversold": 20,
+    "ema_fast": 9,
+    "ema_slow": 21
+  },
+  "trade": {
+    "sl_points": 500,
+    "tp_points": 500,
+    "max_spread": 50,
+    "max_daily_loss": 1000,
+    "max_concurrent_trades": 1,
+    "min_macro_score": 3
+  },
+  "mt4": { "path": "", "account": 0, "password": "", "server": "" },
+  "telegram": {
+    "enabled": true,
+    "bot_token": "SEU_TOKEN_AQUI",
+    "chat_id": "SEU_CHAT_ID_AQUI"
+  },
+  "whatsapp": { "enabled": false, "phone": "", "wait_time": 15 },
+  "hotkeys": { "enabled": false },
+  "mode": "webhook",
+  "log_level": "INFO"
+}
