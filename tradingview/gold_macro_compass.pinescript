@@ -56,5 +56,7 @@ hline(rsiOB, color=color.new(#ff4444, 60), linestyle=hline.style_dashed)
 hline(rsiOS, color=color.new(#00ff88, 60), linestyle=hline.style_dashed)
 
 // === ALERTAS ===
-alertcondition(buySignal, "COMPRA", "Cruzamento EMA + RSI OK - COMPRA")
-alertcondition(sellSignal, "VENDA", "Cruzamento EMA + RSI OK - VENDA")
+if buySignal
+    alert('{"ticker":"' + syminfo.ticker + '","action":"COMPRA","price":' + str.tostring(close) + ',"time":' + str.tostring(timenow) + '}', alert.freq_once_per_bar)
+if sellSignal
+    alert('{"ticker":"' + syminfo.ticker + '","action":"VENDA","price":' + str.tostring(close) + ',"time":' + str.tostring(timenow) + '}', alert.freq_once_per_bar)

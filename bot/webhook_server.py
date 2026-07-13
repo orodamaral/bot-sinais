@@ -20,49 +20,43 @@ def webhook():
     data = request.get_json(force=True)
     logger.info("Webhook recebido: %s", json.dumps(data, indent=2))
 
-    signal_str = (data.get("signal") or "").upper()
-    action = (data.get("action") or "").lower()
-    side = (data.get("side") or "").lower()
+    action = (data.get("action") or "").strip().upper()
+    ticker = data.get("ticker", "XAUUSD")
+    price = data.get("price", 0)
+    time_ms = data.get("time", 0)
 
     extra = {
-        "ticker": data.get("ticker", "BINANCE:XAUUSD"),
-        "price": data.get("price", 0),
-        "signal_name": signal_str,
-        "side": side,
+        "ticker": ticker,
+        "price": price,
+        "time": time_ms,
         "action": action,
     }
 
-    SIGNAL_MAP = {
+    MT4_MAP = {
         "COMPRA": 2,
-        "BULLISH_FLIP_FILTERED": 2,
         "VENDA": -2,
-        "BEARISH_FLIP_FILTERED": -2,
-        "VIRADA_DE_MAO": None,
+        "TAKE": 0,
+        "STOP LOSS": 0,
+        "VIRADA DE MÃO": 0,
     }
 
-    if signal_str in ("STOP", "TAKE"):
-        run_actions(0, extra)
-        return jsonify({"status": "ok", "signal": signal_str})
+    signal = MT4_MAP.get(action)
+    if signal is None:
+        return jsonify({"status": "ignored", "signal": action})
 
-    if signal_str == "VIRADA_DE_MAO":
-        signal = 2 if side == "long" else -2
-    elif signal_str in SIGNAL_MAP:
-        signal = SIGNAL_MAP[signal_str]
-    else:
-        return jsonify({"status": "ignored", "signal": signal_str})
-
-    cfg = load_config()
-    trade_cfg = cfg.get("trade", {})
-    executor.send_signal(
-        signal,
-        trade_cfg.get("sl_points", 500),
-        trade_cfg.get("tp_points", 500),
-        comment="TradingView"
-    )
+    if signal != 0:
+        cfg = load_config()
+        trade_cfg = cfg.get("trade", {})
+        executor.send_signal(
+            signal,
+            trade_cfg.get("sl_points", 500),
+            trade_cfg.get("tp_points", 500),
+            comment="TradingView"
+        )
 
     run_actions(signal, extra)
 
-    return jsonify({"status": "ok", "signal": signal})
+    return jsonify({"status": "ok", "signal": action})
 
 
 @app.route("/health", methods=["GET"])
