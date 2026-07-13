@@ -29,6 +29,54 @@ COR_HEX_MAP = {
     "VIRADA DE MÃO": "ff9800",
 }
 
+_MODIFIER_KEYS = {
+    "control_l": "ctrl", "control_r": "ctrl",
+    "shift_l": "shift", "shift_r": "shift",
+    "alt_l": "alt", "alt_r": "alt",
+}
+
+
+class HotkeyEntry(ctk.CTkEntry):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+        self._mods = set()
+        self._capturing = False
+        self.bind("<FocusIn>", self._on_focus, add="+")
+        self.bind("<KeyPress>", self._on_keypress, add="+")
+        self.bind("<KeyRelease>", self._on_keyrelease, add="+")
+        self.bind("<FocusOut>", self._on_focusout, add="+")
+
+    def _on_focus(self, event):
+        self._capturing = True
+        self._mods.clear()
+        self.delete(0, "end")
+        self.configure(placeholder_text="Pressione o atalho...")
+
+    def _on_focusout(self, event):
+        self._capturing = False
+        self._mods.clear()
+
+    def _on_keypress(self, event):
+        if not self._capturing:
+            return
+        k = event.keysym.lower()
+        if k in _MODIFIER_KEYS:
+            self._mods.add(_MODIFIER_KEYS[k])
+            return "break"
+        parts = list(self._mods)
+        parts.append(k)
+        hotkey = "+".join(parts)
+        self.delete(0, "end")
+        self.insert(0, hotkey)
+        self._capturing = False
+        self.master.focus_set()
+        return "break"
+
+    def _on_keyrelease(self, event):
+        k = event.keysym.lower()
+        if k in _MODIFIER_KEYS:
+            self._mods.discard(_MODIFIER_KEYS[k])
+
 
 class App:
     def __init__(self):
@@ -224,7 +272,7 @@ class App:
         ctk.CTkLabel(scroll, text="Atalhos de Teclado (Hotkeys)",
                      font=("Segoe UI", 16, "bold"),
                      text_color="#c9d1d9").pack(pady=(10, 4))
-        ctk.CTkLabel(scroll, text="Formato: ctrl+shift+alt+c  |  Deixe vazio para desabilitar",
+        ctk.CTkLabel(scroll, text="Clique no campo e pressione o atalho desejado  |  Deixe vazio para desabilitar",
                      font=("Segoe UI", 10), text_color="#8b949e").pack(pady=(0, 14))
 
         actions = ["COMPRA", "VENDA", "TAKE", "STOP LOSS", "VIRADA DE MÃO"]
@@ -240,8 +288,8 @@ class App:
                                text_color=cor, width=160, anchor="w")
             lbl.pack(side="left")
 
-            entry = ctk.CTkEntry(row, placeholder_text="ex: ctrl+shift+alt+c",
-                                 width=260, corner_radius=6)
+            entry = HotkeyEntry(row, placeholder_text="Clique e pressione o atalho",
+                                width=260, corner_radius=6)
             entry.insert(0, hotkeys_cfg.get(act, ""))
             entry.pack(side="left", padx=(10, 0))
             self._hotkey_entries[act] = entry
