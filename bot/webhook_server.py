@@ -32,16 +32,22 @@ def webhook():
         "action": action,
     }
 
+    SIGNAL_MAP = {
+        "COMPRA": 2,
+        "BULLISH_FLIP_FILTERED": 2,
+        "VENDA": -2,
+        "BEARISH_FLIP_FILTERED": -2,
+        "VIRADA_DE_MAO": None,
+    }
+
     if signal_str in ("STOP", "TAKE"):
         run_actions(0, extra)
         return jsonify({"status": "ok", "signal": signal_str})
 
-    if signal_str == "COMPRA":
-        signal = 2
-    elif signal_str == "VENDA":
-        signal = -2
-    elif signal_str == "VIRADA_DE_MAO":
+    if signal_str == "VIRADA_DE_MAO":
         signal = 2 if side == "long" else -2
+    elif signal_str in SIGNAL_MAP:
+        signal = SIGNAL_MAP[signal_str]
     else:
         return jsonify({"status": "ignored", "signal": signal_str})
 
