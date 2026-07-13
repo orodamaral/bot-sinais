@@ -46,20 +46,20 @@ def _focus_window(title_match: str):
         return False
 
 
-def _press_hotkey(hotkey: str, target_window: str = ""):
-    if not hotkey:
+def _click_position(pos, target_window: str = ""):
+    if not pos:
         return
     try:
         import pyautogui
-        pyautogui.PAUSE = 0.05
         _focus_window(target_window)
-        keys = hotkey.split("+")
-        pyautogui.hotkey(*keys, interval=0.08)
-        logger.info("Hotkey executado: %s", hotkey)
+        pyautogui.PAUSE = 0.05
+        x, y = pos
+        pyautogui.click(x, y)
+        logger.info("Clique executado em (%d, %d)", x, y)
     except ImportError:
         logger.warning("pyautogui nao instalado. pip install pyautogui")
     except Exception as e:
-        logger.error("Erro hotkey %s: %s", hotkey, e)
+        logger.error("Erro clique: %s", e)
 
 
 def main():
@@ -73,10 +73,10 @@ def main():
         if app.sound_enabled:
             threading.Thread(target=_play_sound, daemon=True).start()
         action = record.get("action", "")
-        hotkey = app.get_hotkey(action)
-        if hotkey:
+        pos = app.get_click_position(action)
+        if pos:
             target = app.get_window_title()
-            threading.Thread(target=_press_hotkey, args=(hotkey, target), daemon=True).start()
+            threading.Thread(target=_click_position, args=(pos, target), daemon=True).start()
 
     poller = Poller(server_url, on_signal)
 

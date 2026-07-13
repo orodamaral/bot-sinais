@@ -1,3 +1,4 @@
+import threading
 import customtkinter as ctk
 from tkinter import filedialog, messagebox, ttk
 
@@ -29,66 +30,17 @@ COR_HEX_MAP = {
     "VIRADA DE MÃO": "ff9800",
 }
 
-_MODIFIER_KEYS = {
-    "control_l": "ctrl", "control_r": "ctrl",
-    "shift_l": "shift", "shift_r": "shift",
-    "alt_l": "alt", "alt_r": "alt",
-}
-
-
-class HotkeyEntry(ctk.CTkEntry):
-    def __init__(self, master, **kwargs):
-        super().__init__(master, **kwargs)
-        self._mods = set()
-        self._capturing = False
-        self.bind("<FocusIn>", self._on_focus, add="+")
-        self.bind("<KeyPress>", self._on_keypress, add="+")
-        self.bind("<KeyRelease>", self._on_keyrelease, add="+")
-        self.bind("<FocusOut>", self._on_focusout, add="+")
-
-    def _on_focus(self, event):
-        self._capturing = True
-        self._mods.clear()
-        self.delete(0, "end")
-        self.configure(placeholder_text="Pressione o atalho...")
-
-    def _on_focusout(self, event):
-        self._capturing = False
-        self._mods.clear()
-
-    def _on_keypress(self, event):
-        if not self._capturing:
-            return
-        k = event.keysym.lower()
-        if k in _MODIFIER_KEYS:
-            self._mods.add(_MODIFIER_KEYS[k])
-            return "break"
-        parts = list(self._mods)
-        parts.append(k)
-        hotkey = "+".join(parts)
-        self.delete(0, "end")
-        self.insert(0, hotkey)
-        self._capturing = False
-        self.master.focus_set()
-        return "break"
-
-    def _on_keyrelease(self, event):
-        k = event.keysym.lower()
-        if k in _MODIFIER_KEYS:
-            self._mods.discard(_MODIFIER_KEYS[k])
-
-
 class App:
     def __init__(self):
         self.root = ctk.CTk()
         self.root.title("Gold Macro Compass — Monitor")
-        self.root.geometry("820x620")
+        self.root.geometry("860x620")
         self.root.minsize(720, 500)
 
         self._sound_enabled = ctk.BooleanVar(value=True)
         self._history = load_history()
         self._config = load_config()
-        self._hotkey_entries = {}
+        self._click_pos_labels = {}
 
         self._build_ui()
         if self._history:
@@ -269,35 +221,31 @@ class App:
         scroll = ctk.CTkScrollableFrame(parent, corner_radius=10)
         scroll.pack(fill="both", expand=True, padx=6, pady=(10, 0))
 
-        ctk.CTkLabel(scroll, text="Janela Alvo",
+        ctk.CTkLabel(scroll, text="Clique nos Botões do BlackArrow",
                      font=("Segoe UI", 16, "bold"),
                      text_color="#c9d1d9").pack(pady=(10, 2))
-        ctk.CTkLabel(scroll, text="Nome (ou parte) da janela que deve receber os atalhos  |  Ex: BlackArrow, Nelógica, MetaTrader",
-                     font=("Segoe UI", 10), text_color="#8b949e", wraplength=500).pack(pady=(0, 6))
+        ctk.CTkLabel(scroll, text="Para cada ação, clique em \"Capturar\" e depois clique no botão correspondente na tela do BlackArrow",
+                     font=("Segoe UI", 10), text_color="#8b949e", wraplength=560).pack(pady=(0, 10))
 
         win_row = ctk.CTkFrame(scroll, fg_color="transparent")
         win_row.pack(pady=4, padx=20, fill="x")
         ctk.CTkLabel(win_row, text="Janela:", font=("Segoe UI", 13),
-                     text_color="#c9d1d9", width=160, anchor="w").pack(side="left")
-        self._window_entry = ctk.CTkEntry(win_row, placeholder_text="ex: BlackArrow",
-                                          width=260, corner_radius=6)
+                     text_color="#c9d1d9", width=60, anchor="w").pack(side="left")
+        self._window_entry = ctk.CTkEntry(win_row, placeholder_text="Ex: BlackArrow (para focar antes do clique)",
+                                          width=300, corner_radius=6)
         self._window_entry.insert(0, self._config.get("target_window", ""))
         self._window_entry.pack(side="left", padx=(10, 0))
 
-        ctk.CTkLabel(scroll, text="", height=8).pack()
-
         sep = ctk.CTkFrame(scroll, height=1, corner_radius=0)
         sep.configure(fg_color="#30363d")
-        sep.pack(fill="x", padx=20, pady=10)
+        sep.pack(fill="x", padx=20, pady=12)
 
-        ctk.CTkLabel(scroll, text="Atalhos de Teclado (Hotkeys)",
+        ctk.CTkLabel(scroll, text="Posição dos Botões",
                      font=("Segoe UI", 16, "bold"),
-                     text_color="#c9d1d9").pack(pady=(2, 4))
-        ctk.CTkLabel(scroll, text="Clique no campo e pressione o atalho desejado  |  Deixe vazio para desabilitar",
-                     font=("Segoe UI", 10), text_color="#8b949e").pack(pady=(0, 14))
+                     text_color="#c9d1d9").pack(pady=(2, 10))
 
         actions = ["COMPRA", "VENDA", "TAKE", "STOP LOSS", "VIRADA DE MÃO"]
-        hotkeys_cfg = self._config.get("hotkeys", {})
+        positions = self._config.get("click_positions", {})
 
         for act in actions:
             row = ctk.CTkFrame(scroll, fg_color="transparent")
@@ -305,39 +253,82 @@ class App:
 
             emoji = EMOJI_MAP.get(act, "")
             cor = COR_MAP.get(act, "#c9d1d9")
-            lbl = ctk.CTkLabel(row, text=f"{emoji}  {act}", font=("Segoe UI", 13, "bold"),
-                               text_color=cor, width=160, anchor="w")
-            lbl.pack(side="left")
+            ctk.CTkLabel(row, text=f"{emoji}  {act}", font=("Segoe UI", 13, "bold"),
+                         text_color=cor, width=100, anchor="w").pack(side="left")
 
-            entry = HotkeyEntry(row, placeholder_text="Clique e pressione o atalho",
-                                width=260, corner_radius=6)
-            entry.insert(0, hotkeys_cfg.get(act, ""))
-            entry.pack(side="left", padx=(10, 0))
-            self._hotkey_entries[act] = entry
+            pos = positions.get(act, [0, 0])
+            label = ctk.CTkLabel(row, text=f"x: {pos[0]}  y: {pos[1]}" if pos != [0, 0] else "—",
+                                 font=("Consolas", 12), text_color="#8b949e", width=150, anchor="w")
+            label.pack(side="left", padx=(10, 0))
+            self._click_pos_labels[act] = label
+
+            ctk.CTkButton(row, text="Capturar", width=90, corner_radius=6,
+                          command=lambda a=act: self._capture_click(a)).pack(side="left", padx=4)
+            ctk.CTkButton(row, text="Limpar", width=70, corner_radius=6,
+                          fg_color="#5c2e2e", hover_color="#7a3d3d",
+                          command=lambda a=act: self._clear_click(a)).pack(side="left", padx=2)
 
         ctk.CTkLabel(scroll, text="", height=10).pack()
 
-        btn_frame = ctk.CTkFrame(scroll, fg_color="transparent")
-        btn_frame.pack(pady=(8, 16))
-        ctk.CTkButton(btn_frame, text="Salvar Configurações",
-                       command=self._save_hotkeys, width=180,
-                       corner_radius=8).pack()
+    def _capture_click(self, action: str):
+        self.root.withdraw()
+        top = ctk.CTkToplevel(self.root)
+        top.title("")
+        top.overrideredirect(True)
+        top.attributes("-topmost", True)
+        top.configure(fg_color="#1a1a2e")
+        sw = top.winfo_screenwidth()
+        sh = top.winfo_screenheight()
+        top.geometry(f"400x80+{sw//2-200}+40")
+        ctk.CTkLabel(top, text="Clique no botão desejado...", font=("Segoe UI", 16, "bold"),
+                     text_color="#c9d1d9").pack(pady=(15, 0))
+        ctk.CTkLabel(top, text="O clique será capturado automaticamente", font=("Segoe UI", 10),
+                     text_color="#8b949e").pack()
+        top.update()
 
-    def _save_hotkeys(self):
-        hotkeys = {}
-        for act, entry in self._hotkey_entries.items():
-            val = entry.get().strip().lower()
-            hotkeys[act] = val
-        self._config["hotkeys"] = hotkeys
-        self._config["target_window"] = self._window_entry.get().strip()
+        result = [None]
+
+        def listener():
+            from pynput import mouse
+            def on_click(x, y, button, pressed):
+                if pressed and button == mouse.Button.left:
+                    result[0] = (x, y)
+                    return False
+            with mouse.Listener(on_click=on_click) as listener:
+                listener.join()
+
+        t = threading.Thread(target=listener, daemon=True)
+        t.start()
+        t.join()
+
+        top.destroy()
+        self.root.deiconify()
+        self.root.lift()
+
+        if result[0]:
+            x, y = result[0]
+            positions = dict(self._config.get("click_positions", {}))
+            positions[action] = [x, y]
+            self._config["click_positions"] = positions
+            self._click_pos_labels[action].configure(text=f"x: {x}  y: {y}")
+            save_config(self._config)
+            self._status_label.configure(text=f"Posição {action} salva: ({x}, {y})")
+        else:
+            self._status_label.configure(text="Captura cancelada")
+
+    def _clear_click(self, action: str):
+        positions = dict(self._config.get("click_positions", {}))
+        positions.pop(action, None)
+        self._config["click_positions"] = positions
+        self._click_pos_labels[action].configure(text="—")
         save_config(self._config)
-        self._status_label.configure(text="Configurações salvas")
+        self._status_label.configure(text=f"Posição {action} removida")
 
     def get_window_title(self) -> str:
         return self._config.get("target_window", "")
 
-    def get_hotkey(self, action: str) -> str:
-        return self._config.get("hotkeys", {}).get(action, "")
+    def get_click_position(self, action: str):
+        return self._config.get("click_positions", {}).get(action, None)
 
     def run(self):
         self.root.mainloop()

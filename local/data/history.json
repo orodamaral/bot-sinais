@@ -68,5 +68,19 @@
     "ticker": "XAUUSD",
     "time": 1783975300000,
     "time_str": "13/07/2026 17:41:40"
+  },
+  {
+    "action": "VENDA",
+    "price": 4065.5,
+    "ticker": "XAUUSD",
+    "time": 1783975300000,
+    "time_str": "13/07/2026 17:41:40"
+  },
+  {
+    "action": "COMPRA",
+    "price": 4075.0,
+    "ticker": "XAUUSD",
+    "time": 1783976000000,
+    "time_str": "13/07/2026 17:53:20"
   }
 ]

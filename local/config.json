@@ -3,6 +3,7 @@
   "poll_interval": 2000,
   "play_sound": true,
   "sound_file": "",
+  "target_window": "Arrow",
   "hotkeys": {
     "COMPRA": "prior",
     "VENDA": "next",

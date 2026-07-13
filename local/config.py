@@ -16,6 +16,7 @@ DEFAULT = {
         "STOP LOSS": "",
         "VIRADA DE MÃO": "",
     },
+    "click_positions": {},
 }
 
 
