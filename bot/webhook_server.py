@@ -20,24 +20,30 @@ def webhook():
     data = request.get_json(force=True)
     logger.info("Webhook recebido: %s", json.dumps(data, indent=2))
 
-    signal_str = data.get("signal", data.get("Sinal", "NEUTRAL")).upper()
-    signal_map = {
-        "STRONG BUY": 2,
-        "BUY": 1,
-        "SELL": -1,
-        "STRONG SELL": -2,
-        "NEUTRAL": 0,
-    }
-    signal = signal_map.get(signal_str, 0)
-
-    if signal == 0:
-        return jsonify({"status": "ignored", "signal": signal_str})
+    signal_str = (data.get("signal") or "").upper()
+    action = (data.get("action") or "").lower()
+    side = (data.get("side") or "").lower()
 
     extra = {
-        "symbol": data.get("symbol") or data.get("ticker") or data.get("Symbol") or data.get("Ticker") or "BTCUSD",
-        "price": data.get("price") or data.get("close") or data.get("Price") or data.get("Close") or "0",
-        "timeframe": data.get("timeframe") or data.get("Timeframe") or "",
+        "ticker": data.get("ticker", "BINANCE:XAUUSD"),
+        "price": data.get("price", 0),
+        "signal_name": signal_str,
+        "side": side,
+        "action": action,
     }
+
+    if signal_str in ("STOP", "TAKE"):
+        run_actions(0, extra)
+        return jsonify({"status": "ok", "signal": signal_str})
+
+    if signal_str == "COMPRA":
+        signal = 2
+    elif signal_str == "VENDA":
+        signal = -2
+    elif signal_str == "VIRADA_DE_MAO":
+        signal = 2 if side == "long" else -2
+    else:
+        return jsonify({"status": "ignored", "signal": signal_str})
 
     cfg = load_config()
     trade_cfg = cfg.get("trade", {})

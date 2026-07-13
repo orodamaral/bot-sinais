@@ -5,15 +5,24 @@ from .config import load_config
 
 logger = logging.getLogger("actions")
 
-SIGNAL_MAP = {2: "STRONG BUY", 1: "BUY", -1: "SELL", -2: "STRONG SELL", 0: "NEUTRAL"}
-HOTKEYS = {2: "ctrl+shift+alt+c", 1: "ctrl+shift+alt+c", -1: "ctrl+shift+alt+v", -2: "ctrl+shift+alt+v"}
+HOTKEYS = {2: "ctrl+shift+alt+c", -2: "ctrl+shift+alt+v"}
 
 
 def fmt_msg(signal: int, extra: dict = None) -> str:
-    sig = SIGNAL_MAP.get(signal, "DESCONHECIDO")
-    sym = (extra or {}).get("symbol", "BTCUSD")
-    price = (extra or {}).get("price", "0")
-    return f"┌ GOLD MACRO COMPASS\n├ Ativo: {sym}\n├ Preco: {price}\n└ Sinal: {sig}"
+    xt = extra or {}
+    sig_name = xt.get("signal_name", "DESCONHECIDO")
+    ticker = xt.get("ticker", "BINANCE:XAUUSD")
+    price = xt.get("price", 0)
+    side = xt.get("side", "").upper()
+    lines = [
+        "┌ GOLD MACRO COMPASS",
+        f"├ Sinal: {sig_name}",
+        f"├ Ativo: {ticker}",
+        f"├ Preco: {price}",
+    ]
+    if side:
+        lines.insert(3, f"├ Lado: {side}")
+    return "\n".join(lines)
 
 
 def send_telegram(signal: int, extra: dict = None):
@@ -30,7 +39,8 @@ def send_telegram(signal: int, extra: dict = None):
     try:
         url = f"https://api.telegram.org/bot{token}/sendMessage"
         requests.post(url, json={"chat_id": chat_id, "text": text}, timeout=10)
-        logger.info("Telegram enviado: %s", SIGNAL_MAP.get(signal, ""))
+        sig_name = (extra or {}).get("signal_name", "?")
+        logger.info("Telegram enviado: %s", sig_name)
     except Exception as e:
         logger.error("Erro Telegram: %s", e)
 
