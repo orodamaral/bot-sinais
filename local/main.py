@@ -80,6 +80,17 @@ def main():
 
     poller = Poller(server_url, on_signal)
 
+    # Sincroniza timestamp inicial para não re-executar sinal antigo
+    import requests as _req
+    try:
+        r = _req.get(f"{server_url}/last_signal", timeout=5)
+        if r.status_code == 200:
+            d = r.json()
+            if d.get("time"):
+                poller.set_last_time(d["time"])
+    except Exception:
+        pass
+
     interval = cfg.get("poll_interval", 2000)
 
     def poll_loop():

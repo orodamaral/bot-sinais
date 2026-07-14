@@ -10,5 +10,27 @@
     "TAKE": "f3",
     "STOP LOSS": "f3",
     "VIRADA DE MÃO": "f4"
+  },
+  "click_positions": {
+    "COMPRA": [
+      148,
+      651
+    ],
+    "VENDA": [
+      336,
+      653
+    ],
+    "TAKE": [
+      220,
+      657
+    ],
+    "STOP LOSS": [
+      208,
+      646
+    ],
+    "VIRADA DE MÃO": [
+      270,
+      653
+    ]
   }
 }
